@@ -76,7 +76,7 @@ readData <- function() {
   train_median_relevance = dfTrain$median_relevance
   train_relevance_variance = dfTrain$relevance_variance
   testID = dfTest$id
-  
+
   ## Removing columns which are not necessary for the predictions
   dfTrain$median_relevance = NULL
   dfTrain$relevance_variance = NULL
@@ -85,37 +85,39 @@ readData <- function() {
 
   ##Combining the dataset to make them ready for text analysis
   df = rbind(dfTrain,dfTest)
-  
+
   assign("dfTrain", dfTrain, envir)
   assign("dfTest", dfTest, envir)
   assign("df",df,envir)
   assign("train_median_relevance",train_median_relevance,envir)
   assign("train_relevance_variance",train_relevance_variance,envir)
-  
-  
+
+
     print("## Finished importing & preparing the data ##")
 }
 readData()
 
-##lets combine the dataset to do some text preperation
-
 ## Creating Feature variables
 
-
-## Character Count Ratio: 
-## This is the number of characters in a term divided by the total number characters except white spaces in a query. 
-## Sometimes longer terms tend to imply multiple meanings to be more important in a query. This also accounts for spacing errors in writing queries
-## http://www.inside-r.org/packages/cran/qdap/docs/word.count
+## Query Length - All Shorter queries are more likedly to be important
 require("qdap")
 require("qdapTools")
+
+df$queryLen = word_count(df$query, byrow = TRUE, missing = NA, digit.remove = FALSE, names = FALSE)
+
+## Character Count Ratio:
+## This is the number of characters in a term divided by the total number characters except white spaces in a query.
+## Sometimes longer terms tend to imply multiple meanings to be more important in a query. This also accounts for spacing errors in writing queries
+## http://www.inside-r.org/packages/cran/qdap/docs/word.count
+
 
 charCount = character_count(df$query, byrow = TRUE, missing = NA, apostrophe.remove = TRUE, digit.remove = FALSE,count.space = FALSE)
 charCountWSpace = character_count(df$query, byrow = TRUE, missing = NA, apostrophe.remove = TRUE, digit.remove = FALSE,count.space = TRUE)
 df$ccRatio = charCount / charCountWSpace
 #Probably can think of making ccRatio into three factore variables( Factor 1 : <0.85, Factor 2 : >=0.85 to <=0.95 , Factor 3 : >0.95
 
-## Single Term Query Ratio: 
-## We also measure how important a term is by seeing how often it appears by itself as a search term in the list of search queries. 
+## Single Term Query Ratio:
+## We also measure how important a term is by seeing how often it appears by itself as a search term in the list of search queries.
 ## We divide the number of occurrences of a term as a whole query by the number of queries that have the term among other terms so as to obtain a normalized value for the feature.
 
 library("foreach")
@@ -125,8 +127,10 @@ singTerm$countInOthers = 0
 foreach(i = 1:nrow(singTerm)) %do% {
 	singTerm$countInOthers[i]= sum(grepl(singTerm$Var1[i],df$query,ignore.case=T))
 	singTerm$Ratio[i] = (singTerm$Freq[i] / singTerm$countInOthers[i])
-	
+
 		df$singTermRatio[df$query==singTerm$Var1[i] & df$ccRatio==1]= singTerm$Ratio[i]
 }
 #remove all na
 df$singTermRatio[is.na(df$singTermRatio)] = 0
+
+
