@@ -23,14 +23,6 @@
 ## ** one product per document
 
 
-
-
-
-
-
-
--- Y3hM3r@K3yH@!!!
-
 query intent classification problem
 
 
